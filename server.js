@@ -1,17 +1,9 @@
-// server.js
-const express = require('express');
-const dotenv = require('dotenv');
-dotenv.config();
+const http = require('http');
+const app = require('./index');
 
-const app = express();
-app.use(express.json());
+const server = http.createServer(app);
+server.listen(3000, () => {
+    console.log('Api iniciada na porta 3000');
+});
 
-// importa rotas de autenticação
-const authRoutes = require('./routes/auth');
-app.use('/api/auth', authRoutes);
-
-// rota de teste
-app.get('/', (req, res) => res.send('API de autenticação rodando'));
-
-const port = process.env.PORT || 3000;
-app.listen(port, () => console.log(`Server na porta ${port}`));
+module.exports = app;
