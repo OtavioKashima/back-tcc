@@ -1,8 +1,8 @@
-const mysql = require('../mysql');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
+import mysql from '../mysql.js';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 
-exports.updateUser = async (req, res) => {
+export async function updateUser(req, res) {
     try {
         const resultado = await mysql.execute(
 
@@ -33,7 +33,7 @@ exports.updateUser = async (req, res) => {
     }
 }
 
-exports.registerUser = async (req, res) => {
+export async function registerUser(req, res) {
     try {
         const hash = await bcrypt.hash(req.body.password, 10);
         const resultado = await mysql.execute(
@@ -54,7 +54,7 @@ exports.registerUser = async (req, res) => {
     }
 }
 
-exports.deleteUser = async (req, res) => {
+export async function deleteUser(req, res) {
     try {
         const idUsuarios = Number(req.params.id);
 
@@ -70,7 +70,7 @@ exports.deleteUser = async (req, res) => {
     }
 }
 
-exports.loginUser = async (req, res) => {
+export async function loginUser(req, res) {
     try {
         const usuario = await mysql.execute(
             `select * from users where email = ?`,
@@ -110,7 +110,7 @@ exports.loginUser = async (req, res) => {
     }
 }
 
-exports.admin = async (req, res, next) => {
+export async function admin(req, res, next) {
     try{
         if(!res.locals.admin){
             return res.status(401).send({ "mensagem": "Usuario não autorizado" });
@@ -119,4 +119,6 @@ exports.admin = async (req, res, next) => {
     }catch(error){
         return res.status(401).send(error);
     }
- }
+}
+
+export default { updateUser, registerUser, deleteUser, loginUser, admin };

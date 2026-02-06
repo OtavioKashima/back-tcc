@@ -1,6 +1,6 @@
-const jwt = require("jsonwebtoken");
+import jwt from "jsonwebtoken";
 
-exports.required = async (req, res, next) => {
+export async function required(req, res, next) {
     try {
         res.locals.idUsuario = 0;
         res.locals.admin = 0;
@@ -18,6 +18,7 @@ exports.required = async (req, res, next) => {
     } catch (error) {
         return res.status(401).send(error);
     }
-
 }
+
+export default { required };
  

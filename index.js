@@ -1,16 +1,14 @@
-const express = require('express');
-const app = express();
-const cors = require('cors');
-const bodyParser = require('body-parser');
-const helmet = require('helmet');
+import express from 'express';
+import cors from 'cors';
+import bodyParser from 'body-parser';
 
-const usuariosRoute = require('./routes/usuarios.route');
-const filasRoute = require('./routes/filas.route');
-const notificationRoute = require("./routes/notification.route");
-const brinquedosRoute = require("./routes/brinquedos.route");
+import userRoute from './routes/user.route.js';
+import commentRoute from './routes/comment.js';
+import postRoute from "./routes/post.route.js";
+
+const app = express();
 
 app.use(cors());
-app.use(helmet());
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -30,8 +28,7 @@ app.use((req, res, next) => {
 });
 
 app.use("/user", userRoute);
-app.use("/login", loginRoute);
 app.use("/post", postRoute);
 app.use("/comment", commentRoute);
 
-module.exports = app;
+export default app;

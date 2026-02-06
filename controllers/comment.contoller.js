@@ -1,122 +1,165 @@
-const mysql = require('../mysql');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
+import mysql from '../mysql.js';
 
-exports.atualizarUsuario = async (req, res) => {
+// ======== COMENTÁRIOS ========
+
+// Criar um novo comentário
+export async function createComment(req, res) {
     try {
-        const resultado = await mysql.execute(
+        const { post_id, conteudo } = req.body;
+        const user_id = res.locals.idUsuario;
 
-            `update users 
-            set nome = ?,
-            cpf = ?, 
-            email = ?,
-            telefone = ?, 
-            senha	= ?,
-            foto_perfil = ?
-             where id = ?;`,
-            [
-                req.body.nome,
-                req.body.cpf,
-                req.body.email,
-                req.body.telefone,
-                req.body.senha,
-                req.body.foto_perfil,
-                res.locals.idUsuario
-            ]
-
-        );
-        return res.status(201).send({ "mensagem": "Usuario atualizado com sucesso!" });
-
-    } catch (error) {
-        return res.status(500).send({ error });
-
-    }
-}
-
-exports.cadastrarUsuario = async (req, res) => {
-    try {
-        const hash = await bcrypt.hash(req.body.password, 10);
-        const resultado = await mysql.execute(
-            `insert into users (nome, cpf, email, telefone, senha, foto_perfil) values(?, ?, ?, ?, ?, ?)`,
-            [
-                req.body.nome,
-                req.body.cpf,
-                req.body.email,
-                req.body.telfone,
-                hash,
-                req.body.foto_perfil
-            ]
-        );
-        return res.status(201).send({ "mensagem": "Usuario criado com sucesso!" });
-
-    } catch (error) {
-        return res.status(500).send({ error });
-    }
-}
-
-exports.deletarUsuario = async (req, res) => {
-    try {
-        const idUsuarios = Number(req.params.id);
-
-        const resultado = await mysql.execute(
-            `delete from users where id = ?`,
-            [
-                req.params.id
-            ]
-        );
-        return res.status(201).send({ "mensagem": "Usuario deletado com sucesso!" });
-    } catch (error) {
-        return res.status(500).send({ error });
-    }
-}
-
-exports.loginUsuario = async (req, res) => {
-    try {
-        const usuario = await mysql.execute(
-            `select * from users where email = ?`,
-            [req.body.email]
-        );
-
-        if (usuario.length == 0) {
-            return res.status(401).send({ "mensagem": "Falha na autenticação" });
+        if (!post_id || !conteudo) {
+            return res.status(400).send({ 
+                "mensagem": "post_id e conteudo são obrigatórios" 
+            });
         }
-        const match = await bcrypt.compare(req.body.password, usuario[0].password);
 
-        if (!match) {
-            return res.status(200).send({ "mensagem": "senha incorreta" });
+        // Verificar se a postagem existe
+        const post = await mysql.execute(
+            `SELECT id FROM posts WHERE id = ?`,
+            [post_id]
+        );
+
+        if (post.length === 0) {
+            return res.status(404).send({ 
+                "mensagem": "Postagem não encontrada" 
+            });
         }
-        const token = jwt.sign({
-            id: usuario[0].id,
-            nome: usuario[0].nome,
-            cpf: usuario[0].cpf,
-            email: usuario[0].email,
-            telefone: usuario[0].telefone,
-            admin: usuario[0].admin
-        }, 'senhajwt');
+
+        // Inserir comentário
+        const resultado = await mysql.execute(
+            `INSERT INTO comments (post_id, user_id, conteudo) 
+             VALUES (?, ?, ?)`,
+            [post_id, user_id, conteudo]
+        );
+
+        return res.status(201).send({ 
+            "mensagem": "Comentário criado com sucesso!",
+            "id": resultado.insertId
+        });
+
+    } catch (error) {
+        console.error('Erro ao criar comentário:', error);
+        return res.status(500).send({ error: error.message });
+    }
+};
+
+// Obter todos os comentários de uma postagem
+export async function getCommentsByPost(req, res) {
+    try {
+        const { post_id } = req.params;
+
+        const comentarios = await mysql.execute(
+            `SELECT c.id, c.conteudo, c.criado_em, c.atualizado_em,
+                    u.id as user_id, u.nome, u.foto_perfil
+             FROM comments c
+             INNER JOIN users u ON c.user_id = u.id
+             WHERE c.post_id = ?
+             ORDER BY c.criado_em DESC`,
+            [post_id]
+        );
+
         return res.status(200).send({
-            "mensagem": "Usuario logado com sucesso!",
-            "token": token,
-            "user":{
-                "nome": usuario[0].nome,
-                "cpf": usuario[0].cpf,
-                "email": usuario[0].email,
-                "telefone": usuario[0].telefone,
-                "foto_perfil": usuario[0].foto_perfil
-            }
-        })
+            "total": comentarios.length,
+            "comentarios": comentarios
+        });
 
     } catch (error) {
-        res.status(500).send({ error });
+        console.error('Erro ao obter comentários:', error);
+        return res.status(500).send({ error: error.message });
     }
 }
 
-exports.admin = async (req, res, next) => {
-    try{
-        if(!res.locals.admin){
-            return res.status(401).send({ "mensagem": "Usuario não autorizado" });
+// Atualizar um comentário
+export async function updateComment(req, res) {
+    try {
+        const { comment_id, conteudo } = req.body;
+        const user_id = res.locals.idUsuario;
+
+        if (!comment_id || !conteudo) {
+            return res.status(400).send({ 
+                "mensagem": "comment_id e conteudo são obrigatórios" 
+            });
         }
-        next();
-    }catch(error){
-        return res.status(401).send(error);
+
+        // Verificar se o comentário existe e pertence ao usuário
+        const comentario = await mysql.execute(
+            `SELECT user_id FROM comments WHERE id = ?`,
+            [comment_id]
+        );
+
+        if (comentario.length === 0) {
+            return res.status(404).send({ 
+                "mensagem": "Comentário não encontrado" 
+            });
+        }
+
+        if (comentario[0].user_id !== user_id) {
+            return res.status(403).send({ 
+                "mensagem": "Você não tem permissão para editar este comentário" 
+            });
+        }
+
+        // Atualizar comentário
+        await mysql.execute(
+            `UPDATE comments SET conteudo = ? WHERE id = ?`,
+            [conteudo, comment_id]
+        );
+
+        return res.status(200).send({ 
+            "mensagem": "Comentário atualizado com sucesso!" 
+        });
+
+    } catch (error) {
+        console.error('Erro ao atualizar comentário:', error);
+        return res.status(500).send({ error: error.message });
     }
- }
+}
+
+// Deletar um comentário
+export async function deleteComment(req, res) {
+    try {
+        const { id } = req.params;
+        const user_id = res.locals.idUsuario;
+
+        // Verificar se o comentário existe e pertence ao usuário
+        const comentario = await mysql.execute(
+            `SELECT user_id FROM comments WHERE id = ?`,
+            [id]
+        );
+
+        if (comentario.length === 0) {
+            return res.status(404).send({ 
+                "mensagem": "Comentário não encontrado" 
+            });
+        }
+
+        if (comentario[0].user_id !== user_id) {
+            return res.status(403).send({ 
+                "mensagem": "Você não tem permissão para deletar este comentário" 
+            });
+        }
+
+        // Deletar comentário
+        await mysql.execute(
+            `DELETE FROM comments WHERE id = ?`,
+            [id]
+        );
+
+        return res.status(200).send({ 
+            "mensagem": "Comentário deletado com sucesso!" 
+        });
+
+    } catch (error) {
+        console.error('Erro ao deletar comentário:', error);
+        return res.status(500).send({ error: error.message });
+    }
+}
+
+export default {
+    createComment,
+    getCommentsByPost,
+    updateComment,
+    deleteComment
+};
+

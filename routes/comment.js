@@ -1,11 +1,21 @@
-const express = require('express');
+import express from 'express';
+import commentController from '../controllers/comment.contoller.js';
+import login from '../middleware/user.middleware.js';
+
 const router = express.Router();
-const commentController = require('../controllers/comment.controller');
-const login = require('../middleware/usuarios.middleware');
 
-router.delete('/:id', commentController.deletComment);
+// ======== ROTAS DE COMENTÁRIOS ========
 
-router.post('/cadastrar', commentController.createComment);
+// Criar um novo comentário (requer autenticação)
+router.post('/comentario/criar', login.required, commentController.createComment);
 
-router.put('/', login.required, commentController.updateComment)
-module.exports = router;
+// Obter todos os comentários de uma postagem
+router.get('/comentarios/post/:post_id', commentController.getCommentsByPost);
+
+// Atualizar um comentário (requer autenticação)
+router.put('/comentario/atualizar', login.required, commentController.updateComment);
+
+// Deletar um comentário (requer autenticação)
+router.delete('/comentario/:id', login.required, commentController.deleteComment);
+
+export default router;
