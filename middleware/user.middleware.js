@@ -6,7 +6,7 @@ export async function required(req, res, next) {
         res.locals.admin = 0;
 
         const token = req.headers.authorization.split(" ")[1];
-        const decode = jwt.decode(token, "senhajwt");
+        const decode = jwt.decode(token, process.env.JWT_SECRET || "senhajwt");
 
         if (decode.id) {
             res.locals.idUsuario = decode.id;
@@ -20,5 +20,12 @@ export async function required(req, res, next) {
     }
 }
 
-export default { required };
- 
+export function generateToken(user) {
+    return jwt.sign(
+        { id: user.id, cpf: user.cpf },
+        process.env.JWT_SECRET || "senhajwt",
+        { expiresIn: process.env.JWT_EXPIRES_IN || "1d" }
+    );
+}
+
+export default { required, generateToken };

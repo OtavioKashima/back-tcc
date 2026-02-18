@@ -4,8 +4,8 @@ const pool = mysql.createPool({
     host: 'localhost',
     user: 'root',
     password: 'root',
-    port: "3306",
-    database: "banco_tcc"
+    port: "3307",
+    database: "tcc_banco"
 });
 
 export async function execute(query, params = []) {

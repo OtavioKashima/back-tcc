@@ -6,7 +6,7 @@ const router = express.Router();
 
 router.delete('/:id', userController.deleteUser);
 
-router.post('/cadastrar', userController.registerUser);
+router.post('/register', userController.registerUser);
 
 router.put('/', login.required, userController.updateUser)
 
