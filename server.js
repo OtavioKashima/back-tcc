@@ -1,9 +1,9 @@
 import http from 'http';
 import app from './index.js';
 
-const server = http.createServer(app);
-server.listen(3000, () => {
-    console.log('Api iniciada na porta 3000');
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`Api iniciada na porta ${PORT}`);
 });
 
 export default app;
